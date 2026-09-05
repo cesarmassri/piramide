@@ -143,7 +143,7 @@
   .moveHelp{text-align:center;color:#444;min-height:2.6em}
   .moveImageBox{
     text-align:center;
-    margin:8px 0;
+    margin:0;
   }
   .moveImageBox img{
     width:96px;
@@ -203,6 +203,18 @@
     .faceCard{padding:8px}
     svg.face{max-width:230px}
     .expectedFaces{grid-template-columns:1fr}
+    .currentMoveRow{
+      grid-template-columns:96px 82px;
+      gap:12px;
+    }
+    .bigMove{
+      min-width:96px;
+      font-size:2.8rem;
+    }
+    .moveImageBox img{
+      width:82px;
+      height:82px;
+    }
   }
 </style>
 </head>
@@ -217,7 +229,6 @@
     <div>2. Elegí una cara por su centro: por ejemplo, la de <strong>centro amarillo</strong>.</div>
     <div>3. Mirala de frente y elegí qué cara queda <strong>abajo</strong>, identificándola también por el color de su centro.</div>
     <div>4. Sin cambiar esa posición, cargá los tres triángulos exteriores tal como los ves: arriba, abajo-izquierda y abajo-derecha.</div>
-    <div class="small">No hace falta elegir una esquina especial ni aprender F, U, L o R para cargar los colores.</div>
   </section>
 
   <section class="card">
@@ -229,7 +240,6 @@
 
     <div class="controls">
       <button class="action" id="solveBtn">Resolver</button>
-      <button class="action secondary" id="solvedBtn">Cargar estado resuelto</button>
       <button class="action secondary" id="clearBtn">Limpiar</button>
     </div>
     <div class="status" id="status">Faltan 12 triángulos exteriores por cargar.</div>
@@ -244,46 +254,25 @@
 
   <section class="card" id="solutionCard" hidden>
     <h2>2. Movimientos</h2>
-    <p class="small" style="margin-top:-2px">La foto muestra exactamente qué parte mover y en qué sentido. <b>R2, L2 y B2</b> significan repetir dos veces el movimiento de la foto; <b>R3, L3 y B3</b>, repetirlo tres veces.</p>
+    <p class="small" style="margin-top:-2px">La foto indica qué parte mover y en qué sentido. El número indica cuántas veces repetir ese movimiento.</p>
     <div id="solutionSummary"></div>
     <div class="moves" id="moves"></div>
 
     <div id="stepper" hidden>
-      <div class="bigMove" id="bigMove"></div>
-      <div class="moveHelp" id="moveHelp"></div>
-
-      <div class="moveImageBox" id="moveImageBox">
-        <img id="moveImage" src="" alt="Esquema del movimiento">
+      <div class="currentMoveRow">
+        <div class="bigMove" id="bigMove"></div>
+        <div class="moveImageBox" id="moveImageBox">
+          <img id="moveImage" src="" alt="Esquema del movimiento">
+        </div>
       </div>
 
       <div class="stepControls">
-        <button class="action secondary" id="prevBtn">← Volver</button>
-        <button class="action" id="nextBtn">Ya lo hice →</button>
+        <button class="action secondary" id="prevBtn">← Atrás</button>
+        <button class="action" id="nextBtn">Siguiente →</button>
       </div>
-
     </div>
-
-    <details>
-      <summary>Qué significa R, L y B</summary>
-      <div class="legend">
-        <b>R</b><span>Hacé el movimiento mostrado en <code>r.jpg</code>. Mantené la esquina ancla sostenida.</span>
-        <b>L</b><span>Hacé el movimiento mostrado en <code>l.jpg</code>. Mantené la esquina ancla sostenida.</span>
-        <b>B</b><span>Hacé el movimiento mostrado en <code>b.jpg</code>. La dirección se interpreta mirando la pirámide desde atrás, como en la foto.</span>
-        <b>2</b><span>Repetí dos veces el movimiento de la foto.</span>
-        <b>3</b><span>Repetí tres veces el movimiento de la foto. No usamos apóstrofes.</span>
-      </div>
-    </details>
   </section>
 
-  <section class="card">
-    <h2>Notas</h2>
-    <p class="small" style="margin:0">
-      El centro de cada tarjeta ya está cargado. “Abajo” significa la cara vecina que queda debajo mientras mirás esa cara de frente.
-      El solver sólo acepta estados en forma de pirámide al cargar los colores; durante la solución la figura puede deformarse.
-    </p>
-  </section>
-
-  <footer>Funciona completamente en el navegador; no envía los colores a ningún servidor.</footer>
 </main>
 
 <script>
@@ -1010,7 +999,7 @@
       return;
     }
 
-    summary.innerHTML=`<div style="margin-bottom:10px"><b>Posición del ancla:</b> buscá la esquina que reúne <b>amarillo, rojo y verde</b> y sostenela apuntando hacia vos. Mirándola de frente, dejá <b>amarillo a la izquierda</b>, <b>rojo a la derecha</b> y <b>verde abajo</b>. El azul queda atrás. Mantené esa orientación durante toda la secuencia y seguí la foto correspondiente a cada movimiento.</div><div>Solución encontrada: <b>${currentSolution.length} movimientos</b>.</div>`;
+    summary.innerHTML=`<div style="margin-bottom:8px"><b>Posición del ancla:</b> esquina amarillo–rojo–verde apuntando hacia vos, con <b>amarillo a la izquierda</b>, <b>rojo a la derecha</b> y <b>verde abajo</b>. Mantené esa orientación durante toda la secuencia.</div><div class="small">Solución: ${currentSolution.length} movimientos.</div>`;
     currentSolution.forEach((m,i)=>{
       const d=document.createElement("div");
       d.className="move";
@@ -1064,9 +1053,6 @@
 
     document.querySelectorAll(".move").forEach((e,i)=>e.classList.toggle("active",i===completedMoves && !finished));
     document.getElementById("bigMove").textContent=finished ? "✓" : nextMove;
-    document.getElementById("moveHelp").textContent=finished
-      ? "Secuencia terminada."
-      : `Siguiente movimiento (${completedMoves+1} de ${sol.length}): ${moveDescription(nextMove)}`;
 
     const moveImageBox=document.getElementById("moveImageBox");
     const moveImage=document.getElementById("moveImage");
@@ -1080,10 +1066,14 @@
       moveImage.alt = `Esquema del movimiento ${face}`;
     }
 
-    document.getElementById("prevBtn").disabled=completedMoves<=0;
+    const prevBtn=document.getElementById("prevBtn");
     const nextBtn=document.getElementById("nextBtn");
+
+    prevBtn.disabled=completedMoves<=0;
+    prevBtn.textContent="← Atrás";
+
     nextBtn.disabled=finished;
-    nextBtn.textContent=finished ? "Terminado ✓" : `Ya hice ${nextMove} →`;
+    nextBtn.textContent="Siguiente →";
   }
 
   document.getElementById("prevBtn").onclick=()=>{
@@ -1186,7 +1176,6 @@
   };
 
   document.getElementById("clearBtn").onclick=clearAll;
-  document.getElementById("solvedBtn").onclick=loadSolved;
 
   // Autotests mínimos del modelo.
   function selfTest(){
