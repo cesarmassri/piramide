@@ -141,6 +141,21 @@
     font-size:3rem;font-weight:900;text-align:center;margin:8px 0 2px
   }
   .moveHelp{text-align:center;color:#444;min-height:2.6em}
+  .moveImageBox{
+    text-align:center;
+    margin:12px 0;
+  }
+  .moveImageBox img{
+    max-width:320px;
+    width:100%;
+    height:auto;
+    border-radius:12px;
+    border:1px solid var(--line);
+    background:#fff;
+  }
+  #moveImageCaption{
+    margin-top:6px;
+  }
   .stepControls{display:flex;justify-content:center;gap:8px;margin-top:12px}
   .turnArrow{
     text-align:center;
@@ -232,14 +247,19 @@
 
   <section class="card" id="solutionCard" hidden>
     <h2>2. Movimientos</h2>
-    <p class="small" style="margin-top:-2px">Todos los giros usan la misma flecha ↻. Después de cada movimiento, el programa actualiza un <b>estado esperado</b> para que puedas controlar si seguís bien.</p>
+    <p class="small" style="margin-top:-2px">La foto muestra exactamente qué parte mover y en qué sentido. <b>R2, L2 y B2</b> significan repetir dos veces el movimiento de la foto; <b>R3, L3 y B3</b>, repetirlo tres veces. Después de cada movimiento, el programa actualiza un <b>estado esperado</b>.</p>
     <div id="solutionSummary"></div>
     <div class="moves" id="moves"></div>
 
     <div id="stepper" hidden>
       <div class="bigMove" id="bigMove"></div>
-      <div class="turnArrow" id="turnArrow">↻</div>
       <div class="moveHelp" id="moveHelp"></div>
+
+      <div class="moveImageBox" id="moveImageBox">
+        <img id="moveImage" src="" alt="Esquema del movimiento">
+        <div class="small" id="moveImageCaption"></div>
+      </div>
+
       <div class="stepControls">
         <button class="action secondary" id="prevBtn">← Volver</button>
         <button class="action" id="nextBtn">Ya lo hice →</button>
@@ -255,11 +275,11 @@
     <details>
       <summary>Qué significa R, L y B</summary>
       <div class="legend">
-        <b>R</b><span>Girá el bloque que contiene la punta de arriba y la de la derecha. Mirando directamente esa cara de giro, seguí siempre la flecha ↻.</span>
-        <b>L</b><span>Girá el bloque que contiene la punta de arriba y la de la izquierda. Mirando directamente esa cara de giro, seguí siempre la flecha ↻.</span>
-        <b>B</b><span>Girá el bloque que contiene las puntas izquierda y derecha. Mirando directamente esa cara de giro, seguí siempre la flecha ↻.</span>
-        <b>2</b><span>Repetí ese cuarto de vuelta dos veces.</span>
-        <b>3</b><span>Repetí ese cuarto de vuelta tres veces. No usamos apóstrofes.</span>
+        <b>R</b><span>Hacé el movimiento mostrado en <code>r.jpg</code>. Mantené la esquina ancla sostenida.</span>
+        <b>L</b><span>Hacé el movimiento mostrado en <code>l.jpg</code>. Mantené la esquina ancla sostenida.</span>
+        <b>B</b><span>Hacé el movimiento mostrado en <code>b.jpg</code>. La dirección se interpreta mirando la pirámide desde atrás, como en la foto.</span>
+        <b>2</b><span>Repetí dos veces el movimiento de la foto.</span>
+        <b>3</b><span>Repetí tres veces el movimiento de la foto. No usamos apóstrofes.</span>
       </div>
     </details>
   </section>
@@ -821,9 +841,11 @@
 
   function moveDescription(m){
     const face=m[0];
-    const part = face==="R" ? "arriba + derecha" : face==="L" ? "arriba + izquierda" : "izquierda + derecha";
     const n = m.endsWith("2") ? 2 : m.endsWith("3") ? 3 : 1;
-    return `Bloque ${part}. Mirando directamente esa cara de giro, hacé ${n} cuarto${n===1?"":"s"} de vuelta siguiendo siempre ↻.`;
+    const veces = n===1 ? "una vez" : n===2 ? "dos veces" : "tres veces";
+    if(face==="B")
+      return `Seguí exactamente el movimiento de la foto B ${veces}. Mantené la esquina ancla sostenida; B está dibujado mirando desde atrás.`;
+    return `Seguí exactamente el movimiento de la foto ${face} ${veces}. Mantené la esquina ancla sostenida.`;
   }
 
   function decodeStateToTileState(state){
@@ -961,7 +983,7 @@
       return;
     }
 
-    summary.innerHTML=`<div style="margin-bottom:10px"><b>Referencia para los giros:</b> buscá la punta que reúne amarillo, rojo y verde y mantenela apuntando hacia vos durante toda la secuencia. No gires la pirámide entera entre movimientos.</div><div>Solución encontrada: <b>${currentSolution.length} movimientos</b>.</div>`;
+    summary.innerHTML=`<div style="margin-bottom:10px"><b>Referencia para los giros:</b> buscá la punta que reúne amarillo, rojo y verde y mantenela sostenida durante toda la secuencia. No gires la pirámide entera entre movimientos. Para cada paso, seguí la foto correspondiente.</div><div>Solución encontrada: <b>${currentSolution.length} movimientos</b>.</div>`;
     currentSolution.forEach((m,i)=>{
       const d=document.createElement("div");
       d.className="move";
@@ -1015,10 +1037,25 @@
 
     document.querySelectorAll(".move").forEach((e,i)=>e.classList.toggle("active",i===completedMoves && !finished));
     document.getElementById("bigMove").textContent=finished ? "✓" : nextMove;
-    document.getElementById("turnArrow").textContent=finished ? "" : "↻";
     document.getElementById("moveHelp").textContent=finished
       ? "Secuencia terminada. Compará el estado final con los mapas de abajo."
       : `Siguiente movimiento (${completedMoves+1} de ${sol.length}): ${moveDescription(nextMove)}`;
+
+    const moveImageBox=document.getElementById("moveImageBox");
+    const moveImage=document.getElementById("moveImage");
+    const moveImageCaption=document.getElementById("moveImageCaption");
+
+    if(finished){
+      moveImageBox.hidden=true;
+    }else{
+      const face=nextMove[0];
+      moveImageBox.hidden=false;
+      moveImage.src = face==="R" ? "r.jpg" : face==="L" ? "l.jpg" : "b.jpg";
+      moveImage.alt = `Esquema del movimiento ${face}`;
+      moveImageCaption.textContent = face==="B"
+        ? "Movimiento B: seguí la flecha de la foto mirando la pirámide desde atrás."
+        : `Movimiento ${face}: seguí la flecha de la foto y mantené siempre la esquina ancla sostenida.`;
+    }
 
     document.getElementById("prevBtn").disabled=completedMoves<=0;
     const nextBtn=document.getElementById("nextBtn");
