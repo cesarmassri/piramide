@@ -749,24 +749,60 @@
     return ord[2];
   }
 
-  function findCandidates(){
-    const candidates=[];
+  /*
+    Verificación física completa de la carga.
+
+    1. Reconstruye las cuatro caras en 3D usando la referencia "abajo".
+    2. Prueba las dos orientaciones espejo posibles.
+    3. Comprueba que las cuatro esquinas 3D sean exactamente las cuatro
+       piezas físicas del rompecabezas:
+         YRG, YRB, YGB, RGB.
+    4. Reconstruye el estado interno.
+    5. Exige que ese estado sea alcanzable mediante movimientos legales.
+    6. Verifica nuevamente la solución aplicándola hasta TARGET.
+
+    Por lo tanto, un candidato aceptado no sólo tiene la cantidad correcta
+    de colores: corresponde a una figura tridimensional físicamente posible
+    y a un estado legal del mecanismo modelado.
+  */
+  function analyzePhysicalInput(){
+    const result={
+      has3DAssembly:false,
+      hasReachableState:false,
+      candidates:[]
+    };
+
     for(const chirality of [1,-1]){
       const raw=buildRawState(chirality);
-      if(!raw || !rawCornersAreValid(raw)) continue;
+      if(!raw) continue;
+
+      // Chequeo tridimensional: las cuatro caras deben ensamblar las
+      // cuatro esquinas físicas correctas, sin repetir ni inventar piezas.
+      if(!rawCornersAreValid(raw)) continue;
+      result.has3DAssembly=true;
+
       const can=canonicalizeRaw(raw);
       if(!can) continue;
+
       const state=stateFromTileState(can.tileState);
       const sol=solveBidirectional(state);
       if(sol===null) continue;
 
+      // Chequeo final de alcanzabilidad: aplicamos la solución encontrada
+      // y exigimos llegar exactamente al estado resuelto.
       let check=state;
       for(const m of sol) check=applyMove(check,m);
       if(check!==TARGET) continue;
 
-      candidates.push({chirality, sol, state, ...can});
+      result.hasReachableState=true;
+      result.candidates.push({chirality, sol, state, ...can});
     }
-    return candidates;
+
+    return result;
+  }
+
+  function findCandidates(){
+    return analyzePhysicalInput().candidates;
   }
 
   const MOVES=["R","R2","R3","L","L2","L3","B","B2","B3"];
@@ -1125,14 +1161,29 @@
     }
     document.getElementById("ambiguityCard").hidden=true;
     document.getElementById("solutionCard").hidden=true;
-    updateStatus("Carga válida. Buscando solución…");
+    updateStatus("Carga válida. Verificando la figura tridimensional y buscando solución…");
     setTimeout(()=>{
-      const candidates=findCandidates();
-      if(candidates.length===0){
-        updateStatus("No encontré una configuración compatible. Revisá los colores y, sobre todo, qué cara pusiste abajo en cada tarjeta.","error");
+      const analysis=analyzePhysicalInput();
+
+      if(!analysis.has3DAssembly){
+        updateStatus(
+          "Los colores ingresados no forman una pirámide tridimensional posible. Revisá los colores y la cara indicada como “abajo” en cada tarjeta.",
+          "error"
+        );
         return;
       }
+
+      if(!analysis.hasReachableState){
+        updateStatus(
+          "Las caras forman una figura tridimensional consistente, pero ese estado no es alcanzable mediante los movimientos legales del rompecabezas. Revisá la carga.",
+          "error"
+        );
+        return;
+      }
+
+      const candidates=analysis.candidates;
       candidates.sort((a,b)=>a.sol.length-b.sol.length);
+
       if(candidates.length===1){
         finishWithCandidate(candidates[0]);
         return;
