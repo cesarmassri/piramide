@@ -143,18 +143,15 @@
   .moveHelp{text-align:center;color:#444;min-height:2.6em}
   .moveImageBox{
     text-align:center;
-    margin:12px 0;
+    margin:8px 0;
   }
   .moveImageBox img{
-    max-width:320px;
-    width:100%;
-    height:auto;
-    border-radius:12px;
+    width:96px;
+    height:96px;
+    object-fit:contain;
+    border-radius:10px;
     border:1px solid var(--line);
     background:#fff;
-  }
-  #moveImageCaption{
-    margin-top:6px;
   }
   .stepControls{display:flex;justify-content:center;gap:8px;margin-top:12px}
   .turnArrow{
@@ -247,7 +244,7 @@
 
   <section class="card" id="solutionCard" hidden>
     <h2>2. Movimientos</h2>
-    <p class="small" style="margin-top:-2px">La foto muestra exactamente qué parte mover y en qué sentido. <b>R2, L2 y B2</b> significan repetir dos veces el movimiento de la foto; <b>R3, L3 y B3</b>, repetirlo tres veces. Después de cada movimiento, el programa actualiza un <b>estado esperado</b>.</p>
+    <p class="small" style="margin-top:-2px">La foto muestra exactamente qué parte mover y en qué sentido. <b>R2, L2 y B2</b> significan repetir dos veces el movimiento de la foto; <b>R3, L3 y B3</b>, repetirlo tres veces.</p>
     <div id="solutionSummary"></div>
     <div class="moves" id="moves"></div>
 
@@ -257,7 +254,6 @@
 
       <div class="moveImageBox" id="moveImageBox">
         <img id="moveImage" src="" alt="Esquema del movimiento">
-        <div class="small" id="moveImageCaption"></div>
       </div>
 
       <div class="stepControls">
@@ -265,11 +261,6 @@
         <button class="action" id="nextBtn">Ya lo hice →</button>
       </div>
 
-      <div class="expectedBox">
-        <div class="expectedTitle" id="expectedTitle"></div>
-        <div class="expectedNote" id="expectedNote"></div>
-        <div class="expectedFaces" id="expectedFaces"></div>
-      </div>
     </div>
 
     <details>
@@ -1019,7 +1010,7 @@
       return;
     }
 
-    summary.innerHTML=`<div style="margin-bottom:10px"><b>Referencia para los giros:</b> buscá la punta que reúne amarillo, rojo y verde y mantenela sostenida durante toda la secuencia. No gires la pirámide entera entre movimientos. Para cada paso, seguí la foto correspondiente.</div><div>Solución encontrada: <b>${currentSolution.length} movimientos</b>.</div>`;
+    summary.innerHTML=`<div style="margin-bottom:10px"><b>Posición del ancla:</b> buscá la esquina que reúne <b>amarillo, rojo y verde</b> y sostenela apuntando hacia vos. Mirándola de frente, dejá <b>amarillo a la izquierda</b>, <b>rojo a la derecha</b> y <b>verde abajo</b>. El azul queda atrás. Mantené esa orientación durante toda la secuencia y seguí la foto correspondiente a cada movimiento.</div><div>Solución encontrada: <b>${currentSolution.length} movimientos</b>.</div>`;
     currentSolution.forEach((m,i)=>{
       const d=document.createElement("div");
       d.className="move";
@@ -1074,12 +1065,11 @@
     document.querySelectorAll(".move").forEach((e,i)=>e.classList.toggle("active",i===completedMoves && !finished));
     document.getElementById("bigMove").textContent=finished ? "✓" : nextMove;
     document.getElementById("moveHelp").textContent=finished
-      ? "Secuencia terminada. Compará el estado final con los mapas de abajo."
+      ? "Secuencia terminada."
       : `Siguiente movimiento (${completedMoves+1} de ${sol.length}): ${moveDescription(nextMove)}`;
 
     const moveImageBox=document.getElementById("moveImageBox");
     const moveImage=document.getElementById("moveImage");
-    const moveImageCaption=document.getElementById("moveImageCaption");
 
     if(finished){
       moveImageBox.hidden=true;
@@ -1088,17 +1078,12 @@
       moveImageBox.hidden=false;
       moveImage.src = face==="R" ? "r.jpg" : face==="L" ? "l.jpg" : "b.jpg";
       moveImage.alt = `Esquema del movimiento ${face}`;
-      moveImageCaption.textContent = face==="B"
-        ? "Movimiento B: seguí la flecha de la foto mirando la pirámide desde atrás."
-        : `Movimiento ${face}: seguí la flecha de la foto y mantené siempre la esquina ancla sostenida.`;
     }
 
     document.getElementById("prevBtn").disabled=completedMoves<=0;
     const nextBtn=document.getElementById("nextBtn");
     nextBtn.disabled=finished;
     nextBtn.textContent=finished ? "Terminado ✓" : `Ya hice ${nextMove} →`;
-
-    renderExpected();
   }
 
   document.getElementById("prevBtn").onclick=()=>{
