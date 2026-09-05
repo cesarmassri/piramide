@@ -1,0 +1,1150 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Rubik's Pyramid Solver</title>
+<style>
+  :root{
+    --bg:#f5f5f7;
+    --card:#ffffff;
+    --ink:#171717;
+    --muted:#666;
+    --line:#d9d9de;
+    --accent:#111;
+    --shadow:0 8px 26px rgba(0,0,0,.07);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+  }
+  main{
+    max-width:920px;
+    margin:0 auto;
+    padding:20px 14px 48px;
+  }
+  h1{font-size:1.8rem;margin:4px 0 8px}
+  h2{font-size:1.12rem;margin:0 0 10px}
+  p{line-height:1.4}
+  .lead{margin:0 0 16px;color:#333}
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:16px;
+    margin:12px 0;
+    box-shadow:var(--shadow);
+  }
+  .orientation{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:8px;
+  }
+  .orientation strong{font-weight:750}
+  .small{font-size:.9rem;color:var(--muted)}
+  .palette{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:center;
+    margin:12px 0 6px;
+  }
+  .colorBtn{
+    width:52px;height:52px;border-radius:14px;border:3px solid transparent;
+    box-shadow:0 1px 4px rgba(0,0,0,.18);
+    cursor:pointer;
+  }
+  .colorBtn.selected{outline:3px solid #111;outline-offset:2px}
+  .faceSelect{
+    width:100%;
+    margin:5px 0 8px;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:#fff;
+    color:#171717;
+    font-size:.9rem;
+  }
+  .faces{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+    margin-top:14px;
+  }
+  .faceCard{
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:10px;
+    text-align:center;
+    background:#fafafa;
+  }
+  .faceTitle{font-weight:750;margin-bottom:2px}
+  .faceSub{font-size:.78rem;color:var(--muted);margin-bottom:5px}
+  .belowLabel{font-size:.88rem;font-weight:700;margin-top:2px}
+  .downArrow{font-size:1.2rem;vertical-align:-1px}
+  svg.face{width:100%;max-width:250px;height:auto;display:block;margin:auto}
+  .tile{
+    stroke:#161616;
+    stroke-width:5;
+    stroke-linejoin:round;
+    cursor:pointer;
+    transition:opacity .12s;
+  }
+  .tile:active{opacity:.68}
+  .vertexLabel{
+    font-size:15px;
+    font-weight:800;
+    fill:#222;
+    user-select:none;
+    pointer-events:none;
+  }
+  .controls{
+    display:flex;flex-wrap:wrap;gap:9px;margin-top:14px;
+  }
+  button.action{
+    border:0;border-radius:12px;padding:12px 16px;
+    font-size:1rem;font-weight:700;cursor:pointer;
+    background:#111;color:#fff;
+  }
+  button.secondary{
+    background:#e9e9ed;color:#111;
+  }
+  button.action:disabled{opacity:.45;cursor:not-allowed}
+  .status{
+    margin-top:12px;padding:11px 12px;border-radius:12px;
+    background:#f0f0f3;font-size:.92rem;
+  }
+  .status.error{background:#fff0f0;color:#9e1111}
+  .status.ok{background:#eef8ef;color:#175c20}
+  .counts{
+    display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:.88rem
+  }
+  .count{
+    display:flex;align-items:center;gap:5px;
+    padding:5px 9px;background:#f1f1f3;border-radius:999px;
+  }
+  .dot{width:13px;height:13px;border-radius:4px;border:1px solid rgba(0,0,0,.25)}
+  .moves{
+    display:flex;flex-wrap:wrap;gap:8px;margin-top:10px
+  }
+  .move{
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-weight:800;font-size:1.05rem;
+    padding:8px 11px;background:#eee;border-radius:9px;
+  }
+  .move.active{background:#111;color:#fff}
+  .bigMove{
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:3rem;font-weight:900;text-align:center;margin:8px 0 2px
+  }
+  .moveHelp{text-align:center;color:#444;min-height:2.6em}
+  .stepControls{display:flex;justify-content:center;gap:8px;margin-top:12px}
+  .turnArrow{
+    text-align:center;
+    font-size:2.4rem;
+    font-weight:900;
+    line-height:1;
+    margin:8px 0 4px;
+  }
+  .expectedBox{
+    margin-top:16px;
+    padding-top:14px;
+    border-top:1px solid var(--line);
+  }
+  .expectedTitle{font-weight:800;margin-bottom:4px}
+  .expectedNote{font-size:.88rem;color:var(--muted);margin-bottom:10px}
+  .expectedFaces{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+  }
+  .expectedFace{
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:8px;
+    text-align:center;
+    background:#fafafa;
+  }
+  .expectedFaceTitle{font-size:.9rem;font-weight:800}
+  .expectedFaceBelow{font-size:.78rem;color:var(--muted);margin-top:1px}
+  svg.expectedSvg{width:100%;max-width:180px;height:auto;display:block;margin:auto}
+  .staticTile{
+    stroke:#161616;
+    stroke-width:5;
+    stroke-linejoin:round;
+  }
+  details{margin-top:12px}
+  summary{cursor:pointer;font-weight:700}
+  .legend{
+    display:grid;grid-template-columns:auto 1fr;gap:6px 10px;
+    font-size:.9rem;margin-top:8px
+  }
+  code{background:#eee;padding:1px 5px;border-radius:5px}
+  footer{color:#777;font-size:.8rem;margin-top:18px}
+  @media(max-width:620px){
+    .faces{grid-template-columns:1fr}
+    main{padding:12px 10px 34px}
+    h1{font-size:1.55rem}
+    .faceCard{padding:8px}
+    svg.face{max-width:230px}
+    .expectedFaces{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Rubik's Pyramid Solver</h1>
+  <p class="lead">Cargá cada cara exactamente como la ves. La identificamos por el <strong>color del triángulo central</strong>.</p>
+
+  <section class="card orientation">
+    <h2>Cómo cargar una cara</h2>
+    <div>1. El rompecabezas tiene que estar en <strong>forma de pirámide</strong>.</div>
+    <div>2. Elegí una cara por su centro: por ejemplo, la de <strong>centro amarillo</strong>.</div>
+    <div>3. Mirala de frente y elegí qué cara queda <strong>abajo</strong>, identificándola también por el color de su centro.</div>
+    <div>4. Sin cambiar esa posición, cargá los tres triángulos exteriores tal como los ves: arriba, abajo-izquierda y abajo-derecha.</div>
+    <div class="small">No hace falta elegir una esquina especial ni aprender F, U, L o R para cargar los colores.</div>
+  </section>
+
+  <section class="card">
+    <h2>1. Cargá las cuatro caras</h2>
+    <div class="palette" id="palette"></div>
+    <div class="counts" id="counts"></div>
+
+    <div class="faces" id="faces"></div>
+
+    <div class="controls">
+      <button class="action" id="solveBtn">Resolver</button>
+      <button class="action secondary" id="solvedBtn">Cargar estado resuelto</button>
+      <button class="action secondary" id="clearBtn">Limpiar</button>
+    </div>
+    <div class="status" id="status">Faltan 12 triángulos exteriores por cargar.</div>
+  </section>
+
+  <section class="card" id="ambiguityCard" hidden>
+    <h2>Una sola referencia más</h2>
+    <p id="ambiguityText" style="margin:0 0 10px"></p>
+    <div class="controls" id="ambiguityChoices"></div>
+    <div class="small" style="margin-top:8px">Esto sólo aparece si con “abajo” quedan dos configuraciones espejo posibles.</div>
+  </section>
+
+  <section class="card" id="solutionCard" hidden>
+    <h2>2. Movimientos</h2>
+    <p class="small" style="margin-top:-2px">Todos los giros usan la misma flecha ↻. Después de cada movimiento, el programa actualiza un <b>estado esperado</b> para que puedas controlar si seguís bien.</p>
+    <div id="solutionSummary"></div>
+    <div class="moves" id="moves"></div>
+
+    <div id="stepper" hidden>
+      <div class="bigMove" id="bigMove"></div>
+      <div class="turnArrow" id="turnArrow">↻</div>
+      <div class="moveHelp" id="moveHelp"></div>
+      <div class="stepControls">
+        <button class="action secondary" id="prevBtn">← Volver</button>
+        <button class="action" id="nextBtn">Ya lo hice →</button>
+      </div>
+
+      <div class="expectedBox">
+        <div class="expectedTitle" id="expectedTitle"></div>
+        <div class="expectedNote" id="expectedNote"></div>
+        <div class="expectedFaces" id="expectedFaces"></div>
+      </div>
+    </div>
+
+    <details>
+      <summary>Qué significa R, L y B</summary>
+      <div class="legend">
+        <b>R</b><span>Girá el bloque que contiene la punta de arriba y la de la derecha. Mirando directamente esa cara de giro, seguí siempre la flecha ↻.</span>
+        <b>L</b><span>Girá el bloque que contiene la punta de arriba y la de la izquierda. Mirando directamente esa cara de giro, seguí siempre la flecha ↻.</span>
+        <b>B</b><span>Girá el bloque que contiene las puntas izquierda y derecha. Mirando directamente esa cara de giro, seguí siempre la flecha ↻.</span>
+        <b>2</b><span>Repetí ese cuarto de vuelta dos veces.</span>
+        <b>3</b><span>Repetí ese cuarto de vuelta tres veces. No usamos apóstrofes.</span>
+      </div>
+    </details>
+  </section>
+
+  <section class="card">
+    <h2>Notas</h2>
+    <p class="small" style="margin:0">
+      El centro de cada tarjeta ya está cargado. “Abajo” significa la cara vecina que queda debajo mientras mirás esa cara de frente.
+      El solver sólo acepta estados en forma de pirámide al cargar los colores; durante la solución la figura puede deformarse.
+    </p>
+  </section>
+
+  <footer>Funciona completamente en el navegador; no envía los colores a ningún servidor.</footer>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  const COLORS = {
+    Y: {name:"Amarillo", hex:"#f2d51b"},
+    R: {name:"Rojo",     hex:"#d82734"},
+    G: {name:"Verde",    hex:"#19a85b"},
+    B: {name:"Azul",     hex:"#2587d8"}
+  };
+  const EMPTY = "#d7d7dc";
+  let selectedColor = "Y";
+
+  /*
+    Convención geométrica.
+
+    Vértices tetraédricos (paridad +):
+      F=( 1, 1, 1), U=( 1,-1,-1),
+      L=(-1, 1,-1), R=(-1,-1, 1).
+
+    Las cuatro caras de la pirámide son las opuestas a esos vértices:
+      opuesta F = azul
+      opuesta U = verde
+      opuesta L = rojo
+      opuesta R = amarillo
+
+    R gira la cara cúbica y=-1 (contiene U,R)
+    L gira z=-1 (contiene U,L)
+    B gira x=-1 (contiene L,R)
+  */
+  const V = {
+    F:[ 1, 1, 1],
+    U:[ 1,-1,-1],
+    L:[-1, 1,-1],
+    R:[-1,-1, 1]
+  };
+  const faceColor = {F:"B", U:"G", L:"R", R:"Y"};
+
+  // Coordenadas canónicas internas. El usuario no necesita conocerlas.
+  const sideDefs = {
+    Y:{id:"Y", opp:"R", verts:["U","L","F"]},
+    R:{id:"R", opp:"L", verts:["U","F","R"]},
+    G:{id:"G", opp:"U", verts:["F","L","R"]},
+    B:{id:"B", opp:"F", verts:["U","L","R"]}
+  };
+  const sideOrder=["Y","R","G","B"];
+  const centerOrder=["B","G","Y","R"];
+  const posOrder=["T","BL","BR"];
+
+  // Orden cíclico coherente de los tres vértices de cada cara,
+  // expresados por la cara que NO toca ese vértice.
+  const orientedMissing = {
+    Y:["R","G","B"],
+    R:["Y","B","G"],
+    G:["Y","R","B"],
+    B:["Y","G","R"]
+  };
+
+  // Cada tarjeta se identifica sólo por el color REAL de su centro.
+  const panelState={};
+  for(const c of centerOrder){
+    panelState[c]={below:null, tiles:{T:null,BL:null,BR:null}};
+  }
+
+  function renderPalette() {
+    const el = document.getElementById("palette");
+    el.innerHTML = "";
+    for (const c of ["Y","R","G","B"]) {
+      const b = document.createElement("button");
+      b.className = "colorBtn" + (c===selectedColor ? " selected" : "");
+      b.style.background = COLORS[c].hex;
+      b.title = COLORS[c].name;
+      b.setAttribute("aria-label", COLORS[c].name);
+      b.onclick = () => { selectedColor=c; renderPalette(); };
+      el.appendChild(b);
+    }
+  }
+
+  function outerPolygon(points, centerColor, key) {
+    const ns="http://www.w3.org/2000/svg";
+    const p=document.createElementNS(ns,"polygon");
+    p.setAttribute("points", points);
+    p.setAttribute("class","tile");
+    p.setAttribute("fill", panelState[centerColor].tiles[key] ? COLORS[panelState[centerColor].tiles[key]].hex : EMPTY);
+    p.addEventListener("click", () => {
+      panelState[centerColor].tiles[key]=selectedColor;
+      renderFaces();
+      updateStatus();
+    });
+    return p;
+  }
+
+  function centerPolygon(points, color) {
+    const ns="http://www.w3.org/2000/svg";
+    const p=document.createElementNS(ns,"polygon");
+    p.setAttribute("points", points);
+    p.setAttribute("class","tile");
+    p.setAttribute("fill", COLORS[color].hex);
+    p.style.cursor="default";
+    return p;
+  }
+
+  function text(x,y,s) {
+    const ns="http://www.w3.org/2000/svg";
+    const t=document.createElementNS(ns,"text");
+    t.setAttribute("x",x); t.setAttribute("y",y);
+    t.setAttribute("text-anchor","middle");
+    t.setAttribute("class","vertexLabel");
+    t.textContent=s;
+    return t;
+  }
+
+  function renderFaces() {
+    const host=document.getElementById("faces");
+    host.innerHTML="";
+
+    for(const centerColor of centerOrder){
+      const ps=panelState[centerColor];
+      const card=document.createElement("div");
+      card.className="faceCard";
+
+      const title=document.createElement("div");
+      title.className="faceTitle";
+      title.textContent=`Centro ${COLORS[centerColor].name.toLowerCase()}`;
+      card.appendChild(title);
+
+      const sub=document.createElement("div");
+      sub.className="faceSub";
+      sub.textContent="Tocá los 3 triángulos exteriores para cambiar su color.";
+      card.appendChild(sub);
+
+      const ns="http://www.w3.org/2000/svg";
+      const svg=document.createElementNS(ns,"svg");
+      svg.setAttribute("viewBox","0 0 220 205");
+      svg.setAttribute("class","face");
+
+      svg.appendChild(outerPolygon("110,14 64,94 156,94", centerColor, "T"));
+      svg.appendChild(outerPolygon("18,174 64,94 110,174", centerColor, "BL"));
+      svg.appendChild(outerPolygon("202,174 156,94 110,174", centerColor, "BR"));
+      svg.appendChild(centerPolygon("64,94 156,94 110,174", centerColor));
+      svg.appendChild(text(110,10,"arriba"));
+
+      card.appendChild(svg);
+
+      const lab=document.createElement("div");
+      lab.className="belowLabel";
+      lab.innerHTML='<span class="downArrow">↓</span> Abajo está la cara con centro:';
+      card.appendChild(lab);
+
+      const select=document.createElement("select");
+      select.className="faceSelect";
+      select.setAttribute("aria-label",`Cara debajo de la cara con centro ${COLORS[centerColor].name}`);
+      const empty=document.createElement("option");
+      empty.value="";
+      empty.textContent="Elegir color…";
+      select.appendChild(empty);
+      for(const c of ["Y","R","G","B"]){
+        if(c===centerColor) continue;
+        const op=document.createElement("option");
+        op.value=c;
+        op.textContent=COLORS[c].name;
+        if(ps.below===c) op.selected=true;
+        select.appendChild(op);
+      }
+      select.onchange=()=>{
+        ps.below=select.value || null;
+        document.getElementById("ambiguityCard").hidden=true;
+        document.getElementById("solutionCard").hidden=true;
+        updateStatus();
+      };
+      card.appendChild(select);
+      host.appendChild(card);
+    }
+  }
+
+  function allOuterTiles(){
+    const a=[];
+    for(const c of centerOrder)
+      for(const p of posOrder)
+        a.push({center:c,pos:p,color:panelState[c].tiles[p]});
+    return a;
+  }
+
+  function updateStatus(msg=null, kind="") {
+    const st=document.getElementById("status");
+    const all=allOuterTiles();
+    const missing=all.filter(x=>!x.color).length;
+    const counts={Y:0,R:0,G:0,B:0};
+    for(const x of all) if(x.color) counts[x.color]++;
+
+    const countsEl=document.getElementById("counts");
+    countsEl.innerHTML="";
+    for(const c of ["Y","R","G","B"]) {
+      const d=document.createElement("div");
+      d.className="count";
+      d.innerHTML=`<span class="dot" style="background:${COLORS[c].hex}"></span>${COLORS[c].name}: ${counts[c]}/3`;
+      countsEl.appendChild(d);
+    }
+
+    const belowMissing=centerOrder.filter(c=>!panelState[c].below).length;
+    st.className="status" + (kind ? " "+kind : "");
+    if(msg) st.textContent=msg;
+    else if(missing) st.textContent=`Faltan ${missing} triángulos exteriores por cargar.`;
+    else if(belowMissing) st.textContent=`Falta indicar qué cara queda abajo en ${belowMissing} tarjeta${belowMissing===1?"":"s"}.`;
+    else st.textContent="Carga completa. Tocá Resolver.";
+  }
+
+  function clearAll() {
+    for(const c of centerOrder){
+      panelState[c].below=null;
+      for(const p of posOrder) panelState[c].tiles[p]=null;
+    }
+    document.getElementById("ambiguityCard").hidden=true;
+    document.getElementById("solutionCard").hidden=true;
+    renderFaces();
+    updateStatus();
+  }
+
+  function loadSolved() {
+    const demoBelow={Y:"G",R:"G",G:"B",B:"G"};
+    for(const c of centerOrder){
+      panelState[c].below=demoBelow[c];
+      for(const p of posOrder) panelState[c].tiles[p]=c;
+    }
+    document.getElementById("ambiguityCard").hidden=true;
+    document.getElementById("solutionCard").hidden=true;
+    renderFaces();
+    updateStatus();
+  }
+
+  // ----- Modelo de 24 "stickers virtuales" del mecanismo 2×2 -----
+
+  const verts=[];
+  for (const x of [1,-1])
+    for (const y of [1,-1])
+      for (const z of [1,-1])
+        verts.push([x,y,z]);
+
+  function vkey(v){ return v.join(","); }
+  const vName={};
+  for (const [name,v] of Object.entries(V)) vName[vkey(v)]=name;
+
+  const slots=[];
+  const slotIndex=new Map();
+  for (const v of verts) {
+    for (let a=0;a<3;a++) {
+      slotIndex.set(vkey(v)+"|"+a, slots.length);
+      slots.push({v:v.slice(), a});
+    }
+  }
+
+  function parity(v){ return v[0]*v[1]*v[2]; }
+
+  function rotVec(v, axis, q) {
+    let [x,y,z]=v;
+    q=((q%4)+4)%4;
+    for(let k=0;k<q;k++){
+      if(axis===0) [x,y,z]=[x,-z,y];
+      else if(axis===1) [x,y,z]=[z,y,-x];
+      else [x,y,z]=[-y,x,z];
+    }
+    return [x,y,z];
+  }
+
+  function makePerm(axis, faceSign, quarter) {
+    const p=Array.from({length:24},(_,i)=>i);
+    for(let i=0;i<24;i++){
+      const {v,a}=slots[i];
+      if(v[axis]!==faceSign) continue;
+      const n=[0,0,0]; n[a]=v[a];
+      const v2=rotVec(v,axis,quarter);
+      const n2=rotVec(n,axis,quarter);
+      let a2=0;
+      while(a2<3 && n2[a2]===0) a2++;
+      const j=slotIndex.get(vkey(v2)+"|"+a2);
+      p[i]=j;
+    }
+    return p;
+  }
+
+  function invertPerm(p){
+    const q=Array(p.length);
+    for(let i=0;i<p.length;i++) q[p[i]]=i;
+    return q;
+  }
+  function squarePerm(p){ return p.map(i=>p[i]); }
+
+  const base={
+    R:makePerm(1,-1,1),
+    L:makePerm(2,-1,1),
+    B:makePerm(0,-1,1)
+  };
+  const perms={};
+  for(const m of ["R","L","B"]){
+    perms[m]=base[m];
+    perms[m+"2"]=base[m].map(i=>base[m][i]);
+    perms[m+"3"]=invertPerm(base[m]);
+  }
+
+  function applyMove(state, move){
+    const p=perms[move];
+    const out=Array(24);
+    for(let old=0;old<24;old++) out[p[old]]=state[old];
+    return out.join("");
+  }
+
+  // Construye el estado resuelto de 24 stickers.
+  const target=Array(24).fill("?");
+  for(const v of verts){
+    if(parity(v)===1){
+      const pName=vName[vkey(v)];
+      for(let a=0;a<3;a++){
+        let qName=null;
+        for(const [name,q] of Object.entries(V)){
+          if(name!==pName && q[a]===v[a]) { qName=name; break; }
+        }
+        target[slotIndex.get(vkey(v)+"|"+a)] = faceColor[qName];
+      }
+    }else{
+      const q=v.map(x=>-x);
+      const qName=vName[vkey(q)];
+      for(let a=0;a<3;a++)
+        target[slotIndex.get(vkey(v)+"|"+a)] = faceColor[qName];
+    }
+  }
+  const TARGET=target.join("");
+
+  function rotateToFirst(order, first){
+    const i=order.indexOf(first);
+    if(i<0) return null;
+    return [order[i], order[(i+1)%3], order[(i+2)%3]];
+  }
+
+  function buildRawState(chirality){
+    const raw={};
+    for(const c of centerOrder){
+      const below=panelState[c].below;
+      let ord=rotateToFirst(orientedMissing[c], below);
+      if(!ord) return null;
+      if(chirality<0) ord=[ord[0],ord[2],ord[1]];
+      raw[c]={byMissing:{}};
+      raw[c].byMissing[ord[0]]=panelState[c].tiles.T;
+      raw[c].byMissing[ord[1]]=panelState[c].tiles.BL;
+      raw[c].byMissing[ord[2]]=panelState[c].tiles.BR;
+    }
+    return raw;
+  }
+
+  function rawCornersAreValid(raw){
+    const got=[];
+    for(const missing of sideOrder){
+      const cs=[];
+      for(const face of sideOrder){
+        if(face!==missing) cs.push(raw[face].byMissing[missing]);
+      }
+      got.push(cs.sort().join(""));
+    }
+    const expected=["GRY","BRY","BGY","BGR"].sort();
+    return got.sort().join("|")===expected.join("|");
+  }
+
+  // Elige automáticamente la esquina amarillo-rojo-verde como referencia
+  // y gira virtualmente toda la pirámide para colocarla en la convención interna.
+  function canonicalizeRaw(raw){
+    let anchorMissing=null;
+    for(const missing of sideOrder){
+      const cs=[];
+      for(const face of sideOrder)
+        if(face!==missing) cs.push(raw[face].byMissing[missing]);
+      if(cs.slice().sort().join("")==="GRY"){
+        anchorMissing=missing;
+        break;
+      }
+    }
+    if(anchorMissing===null) return null;
+
+    const sideMap={}; // cara geométrica actual -> lado canónico interno
+    for(const face of sideOrder){
+      if(face===anchorMissing) continue;
+      sideMap[face]=raw[face].byMissing[anchorMissing];
+    }
+    sideMap[anchorMissing]="B";
+    if(new Set(Object.values(sideMap)).size!==4) return null;
+
+    const tileState={};
+    for(const side of sideOrder){
+      tileState[side]={C:null};
+      for(const v of sideDefs[side].verts) tileState[side][v]=null;
+    }
+
+    for(const rawFace of sideOrder){
+      const side=sideMap[rawFace];
+      tileState[side].C=rawFace; // el centro de esta cara tiene ese color
+      for(const missing of sideOrder){
+        if(missing===rawFace) continue;
+        const canonicalMissing=sideMap[missing];
+        const vertex=sideDefs[canonicalMissing].opp;
+        tileState[side][vertex]=raw[rawFace].byMissing[missing];
+      }
+    }
+    return {tileState, sideMap, anchorMissing};
+  }
+
+  function stateFromTileState(tileState){
+    const s=Array(24).fill("?");
+    for(const side of sideOrder){
+      const f=sideDefs[side];
+      const q=V[f.opp];
+
+      for(const pName of f.verts){
+        const p=V[pName];
+        let axis=-1;
+        for(let a=0;a<3;a++) if(p[a]===q[a]) { axis=a; break; }
+        s[slotIndex.get(vkey(p)+"|"+axis)] = tileState[side][pName];
+      }
+
+      const c=q.map(x=>-x);
+      for(let a=0;a<3;a++)
+        s[slotIndex.get(vkey(c)+"|"+a)] = tileState[side].C;
+    }
+    return s.join("");
+  }
+
+  function validateInput(){
+    const all=allOuterTiles();
+    if(all.some(x=>!x.color))
+      return `Todavía faltan ${all.filter(x=>!x.color).length} triángulos exteriores.`;
+
+    const belowMissing=centerOrder.filter(c=>!panelState[c].below);
+    if(belowMissing.length)
+      return "Indicá qué cara queda abajo en las cuatro tarjetas.";
+
+    for(const c of centerOrder){
+      if(panelState[c].below===c)
+        return `En la cara de centro ${COLORS[c].name.toLowerCase()}, la cara de abajo no puede tener el mismo centro.`;
+    }
+
+    const counts={Y:0,R:0,G:0,B:0};
+    for(const x of all) counts[x.color]++;
+    for(const c of ["Y","R","G","B"])
+      if(counts[c]!==3)
+        return `${COLORS[c].name}: cargaste ${counts[c]} triángulos exteriores; deben ser 3.`;
+
+    return null;
+  }
+
+  function predictedLeftNeighbor(face, chirality){
+    let ord=rotateToFirst(orientedMissing[face], panelState[face].below);
+    if(chirality<0) ord=[ord[0],ord[2],ord[1]];
+    // El borde izquierdo une los vértices T y BL;
+    // la cara vecina común es la que falta en BR.
+    return ord[2];
+  }
+
+  function findCandidates(){
+    const candidates=[];
+    for(const chirality of [1,-1]){
+      const raw=buildRawState(chirality);
+      if(!raw || !rawCornersAreValid(raw)) continue;
+      const can=canonicalizeRaw(raw);
+      if(!can) continue;
+      const state=stateFromTileState(can.tileState);
+      const sol=solveBidirectional(state);
+      if(sol===null) continue;
+
+      let check=state;
+      for(const m of sol) check=applyMove(check,m);
+      if(check!==TARGET) continue;
+
+      candidates.push({chirality, sol, state, ...can});
+    }
+    return candidates;
+  }
+
+  const MOVES=["R","R2","R3","L","L2","L3","B","B2","B3"];
+
+  function inverseMove(m){
+    if(m.endsWith("2")) return m;
+    if(m.endsWith("3")) return m[0];
+    return m+"3";
+  }
+
+  /*
+    Búsqueda bidireccional.
+    El grupo con F fijo es el mismo grupo de estados de un 2×2 con una esquina fija.
+    Con estos 9 movimientos, profundidad 6 desde cada lado alcanza de sobra
+    para los estados válidos de esta configuración.
+  */
+  function solveBidirectional(start){
+    if(start===TARGET) return [];
+
+    const back=new Map();
+    back.set(TARGET, []);
+    let frontier=[TARGET];
+
+    for(let depth=0;depth<6;depth++){
+      const next=[];
+      for(const st of frontier){
+        const path=back.get(st);
+        const lastFace=path.length ? path[path.length-1][0] : null;
+        for(const m of MOVES){
+          if(lastFace && m[0]===lastFace) continue;
+          const ns=applyMove(st,m);
+          if(!back.has(ns)){
+            back.set(ns, path.concat(m));
+            next.push(ns);
+          }
+        }
+      }
+      frontier=next;
+    }
+
+    const front=new Map();
+    front.set(start, []);
+    frontier=[start];
+
+    for(let depth=0;depth<=6;depth++){
+      for(const st of frontier){
+        if(back.has(st)){
+          const a=front.get(st);
+          const b=back.get(st);
+          return a.concat(b.slice().reverse().map(inverseMove));
+        }
+      }
+      if(depth===6) break;
+
+      const next=[];
+      for(const st of frontier){
+        const path=front.get(st);
+        const lastFace=path.length ? path[path.length-1][0] : null;
+        for(const m of MOVES){
+          if(lastFace && m[0]===lastFace) continue;
+          const ns=applyMove(st,m);
+          if(!front.has(ns)){
+            front.set(ns,path.concat(m));
+            next.push(ns);
+          }
+        }
+      }
+      frontier=next;
+    }
+    return null;
+  }
+
+  function moveDescription(m){
+    const face=m[0];
+    const part = face==="R" ? "arriba + derecha" : face==="L" ? "arriba + izquierda" : "izquierda + derecha";
+    const n = m.endsWith("2") ? 2 : m.endsWith("3") ? 3 : 1;
+    return `Bloque ${part}. Mirando directamente esa cara de giro, hacé ${n} cuarto${n===1?"":"s"} de vuelta siguiendo siempre ↻.`;
+  }
+
+  function decodeStateToTileState(state){
+    const tileState={};
+    for(const side of sideOrder){
+      tileState[side]={C:null};
+      for(const v of sideDefs[side].verts) tileState[side][v]=null;
+    }
+
+    for(const side of sideOrder){
+      const f=sideDefs[side];
+      const q=V[f.opp];
+
+      for(const pName of f.verts){
+        const p=V[pName];
+        let axis=-1;
+        for(let a=0;a<3;a++) if(p[a]===q[a]) { axis=a; break; }
+        tileState[side][pName]=state[slotIndex.get(vkey(p)+"|"+axis)];
+      }
+
+      const c=q.map(x=>-x);
+      tileState[side].C=state[slotIndex.get(vkey(c)+"|0")];
+    }
+    return tileState;
+  }
+
+  function isPyramidState(state){
+    for(const v of verts){
+      const cs=[
+        state[slotIndex.get(vkey(v)+"|0")],
+        state[slotIndex.get(vkey(v)+"|1")],
+        state[slotIndex.get(vkey(v)+"|2")]
+      ];
+      const distinct=new Set(cs).size;
+      if(parity(v)===1){
+        if(distinct!==3) return false;
+      }else{
+        if(distinct!==1) return false;
+      }
+    }
+    return true;
+  }
+
+  function staticPolygon(ns, points, color){
+    const p=document.createElementNS(ns,"polygon");
+    p.setAttribute("points",points);
+    p.setAttribute("class","staticTile");
+    p.setAttribute("fill",COLORS[color].hex);
+    return p;
+  }
+
+  function renderExpectedPyramid(state){
+    const host=document.getElementById("expectedFaces");
+    host.innerHTML="";
+    const ts=decodeStateToTileState(state);
+
+    // Se muestran las caras por color de su centro, igual que en la carga.
+    const cards=[];
+    for(const side of sideOrder){
+      const center=ts[side].C;
+      const missingOrder=orientedMissing[side];
+      const belowSide=missingOrder[0];
+      const belowCenter=ts[belowSide].C;
+
+      const topVertex=sideDefs[missingOrder[0]].opp;
+      const blVertex=sideDefs[missingOrder[1]].opp;
+      const brVertex=sideDefs[missingOrder[2]].opp;
+
+      cards.push({
+        center,
+        belowCenter,
+        T:ts[side][topVertex],
+        BL:ts[side][blVertex],
+        BR:ts[side][brVertex]
+      });
+    }
+    cards.sort((a,b)=>centerOrder.indexOf(a.center)-centerOrder.indexOf(b.center));
+
+    for(const c of cards){
+      const card=document.createElement("div");
+      card.className="expectedFace";
+
+      const title=document.createElement("div");
+      title.className="expectedFaceTitle";
+      title.textContent=`Centro ${COLORS[c.center].name.toLowerCase()}`;
+      card.appendChild(title);
+
+      const below=document.createElement("div");
+      below.className="expectedFaceBelow";
+      below.textContent=`poné abajo: centro ${COLORS[c.belowCenter].name.toLowerCase()}`;
+      card.appendChild(below);
+
+      const ns="http://www.w3.org/2000/svg";
+      const svg=document.createElementNS(ns,"svg");
+      svg.setAttribute("viewBox","0 0 220 205");
+      svg.setAttribute("class","expectedSvg");
+      svg.appendChild(staticPolygon(ns,"110,14 64,94 156,94",c.T));
+      svg.appendChild(staticPolygon(ns,"18,174 64,94 110,174",c.BL));
+      svg.appendChild(staticPolygon(ns,"202,174 156,94 110,174",c.BR));
+      svg.appendChild(staticPolygon(ns,"64,94 156,94 110,174",c.center));
+      card.appendChild(svg);
+
+      host.appendChild(card);
+    }
+  }
+
+  let currentSolution=[];
+  let stateHistory=[];
+  let completedMoves=0;
+
+  function renderSolution(candidate){
+    currentSolution=candidate.sol;
+    completedMoves=0;
+    stateHistory=[candidate.state];
+
+    let s=candidate.state;
+    for(const m of currentSolution){
+      s=applyMove(s,m);
+      stateHistory.push(s);
+    }
+
+    const card=document.getElementById("solutionCard");
+    card.hidden=false;
+
+    const summary=document.getElementById("solutionSummary");
+    const movesEl=document.getElementById("moves");
+    const stepper=document.getElementById("stepper");
+    movesEl.innerHTML="";
+
+    if(currentSolution.length===0){
+      summary.innerHTML="<b>Ya está resuelto.</b>";
+      stepper.hidden=false;
+      updateStepper();
+      card.scrollIntoView({behavior:"smooth",block:"start"});
+      return;
+    }
+
+    summary.innerHTML=`<div style="margin-bottom:10px"><b>Referencia para los giros:</b> buscá la punta que reúne amarillo, rojo y verde y mantenela apuntando hacia vos durante toda la secuencia. No gires la pirámide entera entre movimientos.</div><div>Solución encontrada: <b>${currentSolution.length} movimientos</b>.</div>`;
+    currentSolution.forEach((m,i)=>{
+      const d=document.createElement("div");
+      d.className="move";
+      d.textContent=m;
+      d.dataset.i=i;
+      movesEl.appendChild(d);
+    });
+
+    stepper.hidden=false;
+    updateStepper();
+    card.scrollIntoView({behavior:"smooth",block:"start"});
+  }
+
+  function renderExpected(){
+    const title=document.getElementById("expectedTitle");
+    const note=document.getElementById("expectedNote");
+    const host=document.getElementById("expectedFaces");
+    const now=stateHistory[completedMoves];
+
+    if(isPyramidState(now)){
+      title.textContent = completedMoves===0
+        ? "Control antes de empezar"
+        : completedMoves===currentSolution.length
+          ? "Estado final esperado"
+          : `Control después de ${completedMoves} movimiento${completedMoves===1?"":"s"}`;
+      note.textContent="La figura debería estar en forma de pirámide. Para comparar una cara, buscá el centro indicado y poné abajo la cara que dice el mapa.";
+      renderExpectedPyramid(now);
+      return;
+    }
+
+    let next=-1;
+    for(let i=completedMoves+1;i<stateHistory.length;i++){
+      if(isPyramidState(stateHistory[i])) { next=i; break; }
+    }
+
+    title.textContent="Ahora la figura debería estar deformada";
+    host.innerHTML="";
+    if(next>=0){
+      const faltan=next-completedMoves;
+      note.textContent=`En este punto no existen cuatro caras triangulares como al comienzo. El próximo control será después de ${next} movimientos (${faltan} más desde ahora). Abajo se muestra cómo deberá verse cuando vuelva a ser pirámide.`;
+      renderExpectedPyramid(stateHistory[next]);
+    }else{
+      note.textContent="En este punto no existen cuatro caras triangulares como al comienzo.";
+    }
+  }
+
+  function updateStepper(){
+    const sol=currentSolution;
+    const finished=completedMoves>=sol.length;
+    const nextMove=finished ? null : sol[completedMoves];
+
+    document.querySelectorAll(".move").forEach((e,i)=>e.classList.toggle("active",i===completedMoves && !finished));
+    document.getElementById("bigMove").textContent=finished ? "✓" : nextMove;
+    document.getElementById("turnArrow").textContent=finished ? "" : "↻";
+    document.getElementById("moveHelp").textContent=finished
+      ? "Secuencia terminada. Compará el estado final con los mapas de abajo."
+      : `Siguiente movimiento (${completedMoves+1} de ${sol.length}): ${moveDescription(nextMove)}`;
+
+    document.getElementById("prevBtn").disabled=completedMoves<=0;
+    const nextBtn=document.getElementById("nextBtn");
+    nextBtn.disabled=finished;
+    nextBtn.textContent=finished ? "Terminado ✓" : `Ya hice ${nextMove} →`;
+
+    renderExpected();
+  }
+
+  document.getElementById("prevBtn").onclick=()=>{
+    if(completedMoves>0){
+      completedMoves--;
+      updateStepper();
+    }
+  };
+
+  document.getElementById("nextBtn").onclick=()=>{
+    if(completedMoves<currentSolution.length){
+      completedMoves++;
+      updateStepper();
+    }
+  };
+
+  let pendingCandidates=[];
+
+  function finishWithCandidate(candidate){
+    document.getElementById("ambiguityCard").hidden=true;
+    updateStatus(`Solución verificada: ${candidate.sol.length} movimientos.`,"ok");
+    renderSolution(candidate);
+  }
+
+  function askMirrorQuestion(candidates){
+    pendingCandidates=candidates;
+    const ref="Y";
+    const below=panelState[ref].below;
+    const choices=[...new Set(candidates.map(c=>predictedLeftNeighbor(ref,c.chirality)))];
+    if(choices.length<2){
+      finishWithCandidate(candidates[0]);
+      return;
+    }
+
+    const card=document.getElementById("ambiguityCard");
+    const txt=document.getElementById("ambiguityText");
+    const host=document.getElementById("ambiguityChoices");
+    txt.innerHTML=`Mirá nuevamente la cara de <b>centro amarillo</b>, con la cara de <b>centro ${COLORS[below].name.toLowerCase()}</b> abajo. ¿Qué cara queda a la <b>izquierda</b>?`;
+    host.innerHTML="";
+    for(const choice of choices){
+      const b=document.createElement("button");
+      b.className="action secondary";
+      b.textContent=COLORS[choice].name;
+      b.onclick=()=>{
+        const matches=pendingCandidates.filter(c=>predictedLeftNeighbor(ref,c.chirality)===choice);
+        if(matches.length) finishWithCandidate(matches.sort((a,b)=>a.sol.length-b.sol.length)[0]);
+      };
+      host.appendChild(b);
+    }
+    card.hidden=false;
+    document.getElementById("solutionCard").hidden=true;
+    card.scrollIntoView({behavior:"smooth",block:"center"});
+  }
+
+  document.getElementById("solveBtn").onclick=()=>{
+    const err=validateInput();
+    if(err){
+      updateStatus(err,"error");
+      return;
+    }
+    document.getElementById("ambiguityCard").hidden=true;
+    document.getElementById("solutionCard").hidden=true;
+    updateStatus("Carga válida. Buscando solución…");
+    setTimeout(()=>{
+      const candidates=findCandidates();
+      if(candidates.length===0){
+        updateStatus("No encontré una configuración compatible. Revisá los colores y, sobre todo, qué cara pusiste abajo en cada tarjeta.","error");
+        return;
+      }
+      candidates.sort((a,b)=>a.sol.length-b.sol.length);
+      if(candidates.length===1){
+        finishWithCandidate(candidates[0]);
+        return;
+      }
+
+      // Si ambas interpretaciones producen exactamente la misma secuencia,
+      // no hace falta molestar al usuario con una pregunta extra.
+      const key=candidates[0].sol.join(" ");
+      if(candidates.every(c=>c.sol.join(" ")===key)){
+        finishWithCandidate(candidates[0]);
+      }else{
+        askMirrorQuestion(candidates);
+      }
+    },30);
+  };
+
+  document.getElementById("clearBtn").onclick=clearAll;
+  document.getElementById("solvedBtn").onclick=loadSolved;
+
+  // Autotests mínimos del modelo.
+  function selfTest(){
+    for(const m of ["R","L","B"]){
+      let s=applyMove(TARGET,m);
+      s=applyMove(s,inverseMove(m));
+      if(s!==TARGET) throw new Error("Falla inversa "+m);
+      s=TARGET;
+      for(let i=0;i<4;i++) s=applyMove(s,m);
+      if(s!==TARGET) throw new Error("Falla orden 4 "+m);
+    }
+    // Algoritmo de la guía: orienta la esquina U sin cambiar las demás piezas visibles.
+    const alg=["R","L3","R3","L","R","L3","R3","L"];
+    let s=TARGET;
+    for(const m of alg) s=applyMove(s,m);
+    if(s===TARGET) throw new Error("Autotest de orientación inesperado");
+    for(const m of alg) s=applyMove(s,m);
+    for(const m of alg) s=applyMove(s,m);
+    if(s!==TARGET) throw new Error("Falla algoritmo de orientación");
+  }
+
+  try{ selfTest(); }
+  catch(e){
+    document.getElementById("solveBtn").disabled=true;
+    updateStatus("El solver no pasó su verificación interna: "+e.message,"error");
+  }
+
+  renderPalette();
+  renderFaces();
+  updateStatus();
+})();
+</script>
+</body>
+</html>
