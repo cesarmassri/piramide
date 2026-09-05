@@ -24,49 +24,6 @@ El número indica cuántos cuartos de vuelta se hacen en el mismo sentido. Por e
 
 Durante la resolución se muestra también el estado esperado de la pirámide para poder controlar el procedimiento.
 
-## Archivos
-
-El proyecto no necesita servidor ni dependencias externas.
-
-```text
-piramide/
-├── index.html
-└── README.md
-```
-
-Para usar la versión actual, renombrar:
-
-```text
-rubiks_pyramid_solver_v5.html
-```
-
-como:
-
-```text
-index.html
-```
-
-## GitHub Pages
-
-1. Crear o usar el repositorio `piramide`.
-2. Subir `index.html` y `README.md` a la rama principal.
-3. En GitHub ir a:
-
-   **Settings → Pages**
-
-4. En **Build and deployment**, elegir:
-   - **Source:** `Deploy from a branch`
-   - **Branch:** `main`
-   - **Folder:** `/ (root)`
-
-5. Guardar.
-
-GitHub publicará la página en una dirección de la forma:
-
-```text
-https://TU-USUARIO.github.io/piramide/
-```
-
 ## Funcionamiento
 
 El solver corre completamente en el navegador.
